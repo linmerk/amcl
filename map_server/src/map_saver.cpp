@@ -82,7 +82,7 @@ class MapGenerator
             fputc(205, out);
           }
         }
-      }
+      } 
 
       fclose(out);
 

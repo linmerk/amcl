@@ -490,6 +490,8 @@ AmclNode::AmclNode() :
 
   ///< 建激光传感器的消息过滤器对象和tf2的过滤器，并注册回调函数laserReceived
   laser_scan_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>(nh_, scan_topic_, 100);
+
+  ///< tf::MessageFilter可以订阅任何的ROS消息，然后将其缓存，直到这些消息可以转换到目标坐标系
   laser_scan_filter_ = 
           new tf::MessageFilter<sensor_msgs::LaserScan>(*laser_scan_sub_, 
                                                         *tf_, 
@@ -884,7 +886,7 @@ AmclNode::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
            msg.info.height,
            msg.info.resolution);
   
-  if(msg.header.frame_id != global_frame_id_)
+  if(msg.header.frame_id != global_frame_id_) ///< global_frame_id_ = "map"
     ROS_WARN("Frame_id of map received:'%s' doesn't match global_frame_id:'%s'. This could cause issues with reading published topics",
              msg.header.frame_id.c_str(),
              global_frame_id_.c_str());
@@ -896,6 +898,7 @@ AmclNode::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
   lasers_update_.clear();
   frame_to_laser_.clear();
 
+  ///< 初始化地图
   map_ = convertMap(msg);
 
 #if NEW_UNIFORM_SAMPLING
@@ -993,11 +996,22 @@ AmclNode::convertMap( const nav_msgs::OccupancyGrid& map_msg )
   map->size_x = map_msg.info.width;
   map->size_y = map_msg.info.height;
   map->scale = map_msg.info.resolution;
+
+  ///< 设置地图像素坐标系中,中点坐标为初始点,并求出中间像素点在实际物理坐标系中的x,y值,以备后面转化使用：map->origin_x: 归一化用到这个值,作为边界
   map->origin_x = map_msg.info.origin.position.x + (map->size_x / 2) * map->scale;
   map->origin_y = map_msg.info.origin.position.y + (map->size_y / 2) * map->scale;
   // Convert to player format
   map->cells = (map_cell_t*)malloc(sizeof(map_cell_t)*map->size_x*map->size_y);
   ROS_ASSERT(map->cells);
+
+
+  ///< 此处包含一个地图数据存储解析的方式:
+  ///< 即二维的像素坐标系是先按行存,再按列存储,详细参考map_server代码
+
+
+
+  ///< 填充state值
+  ///< -1 = free, 0 = unknown, +1 = occ
   for(int i=0;i<map->size_x * map->size_y;i++)
   {
     if(map_msg.data[i] == 0)
@@ -1122,8 +1136,7 @@ AmclNode::setMapCallback(nav_msgs::SetMap::Request& req,
   return true;
 }
 
-void
-AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
+void AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
 {
   last_laser_received_ts_ = ros::Time::now();
   if( map_ == NULL ) {
