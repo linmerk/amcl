@@ -902,6 +902,7 @@ AmclNode::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
   map_ = convertMap(msg);
 
 #if NEW_UNIFORM_SAMPLING
+  ///< 获取所有为空的像素点对应的数值下表
   // Index of free space
   free_space_indices.resize(0);
   for(int i = 0; i < map_->size_x; i++)
@@ -1007,8 +1008,6 @@ AmclNode::convertMap( const nav_msgs::OccupancyGrid& map_msg )
 
   ///< 此处包含一个地图数据存储解析的方式:
   ///< 即二维的像素坐标系是先按行存,再按列存储,详细参考map_server代码
-
-
 
   ///< 填充state值
   ///< -1 = free, 0 = unknown, +1 = occ
