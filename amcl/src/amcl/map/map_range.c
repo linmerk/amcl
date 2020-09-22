@@ -35,6 +35,14 @@
 // Extract a single range reading from the map.  Unknown cells and/or
 // out-of-bound cells are treated as occupied, which makes it easy to
 // use Stage bitmap files.
+
+
+///< amcl实现了《Probabilistic Robotics》中所描述的beam_range_finder_model， 
+///< 该模型需要计算无噪声的情况下传感器的测量值，文件map_range.c中所实现的函数map_calc_range就是用来估计这一测量值的
+
+///< 根据源码的注释，可以了解到它使用的是Bresenham raytracing的算法
+///< 适用Bresenham raytracing算法,预测激光每一条线上扫描到的障碍物的点，并计算出距离
+
 double map_calc_range(map_t *map, double ox, double oy, double oa, double max_range)
 {
   // Bresenham raytracing
@@ -45,12 +53,16 @@ double map_calc_range(map_t *map, double ox, double oy, double oa, double max_ra
   int tmp;
   int deltax, deltay, error, deltaerr;
 
+  ///< 获取世界坐标系搜索起始在map上的像素点的值
   x0 = MAP_GXWX(map,ox);
   y0 = MAP_GYWY(map,oy);
   
+  ///< 获取世界坐标系搜索终点在map上的像素点的值
   x1 = MAP_GXWX(map,ox + max_range * cos(oa));
   y1 = MAP_GYWY(map,oy + max_range * sin(oa));
 
+
+  ///< 判定直线斜率是否大于1,Bresenham算法值针对斜率小于1的适用
   if(abs(y1-y0) > abs(x1-x0))
     steep = 1;
   else
